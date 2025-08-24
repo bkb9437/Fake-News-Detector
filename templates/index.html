@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: block;
+            margin: 0 auto;
+            min-width: 200px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .result.real {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: 3px solid #4facfe;
+        }
+
+        .result.fake {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            border: 3px solid #fa709a;
+        }
+
+        .result.uncertain {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+            border: 3px solid #fcb69f;
+        }
+
+        .confidence {
+            margin-top: 15px;
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .tips {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .tips h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .tips ul {
+            color: #666;
+            padding-left: 20px;
+        }
+
+        .tips li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Fake News Detector</h1>
+        <p class="subtitle">Enter news text below to analyze its authenticity</p>
+
+        {% if error_message %}
+        <div class="error">
+            ⚠️ {{ error_message }}
+        </div>
+        {% endif %}
+
+        <form method="POST" id="newsForm">
+            <div class="form-group">
+                <label for="news">News Text:</label>
+                <textarea
+                    name="news"
+                    id="news"
+                    placeholder="Paste the news article or headline you want to verify..."
+                    maxlength="10000"
+                    required
+                >{{ request.form.get('news', '') }}</textarea>
+                <div class="char-count">
+                    <span id="charCount">0</span>/10,000 characters
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="analyzeBtn">
+                🔎 Analyze News
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing news authenticity...</p>
+        </div>
+
+        {% if prediction %}
+        <div class="result {{ prediction.lower() }}">
+            {% if prediction == "Real" %}
+                ✅ This appears to be <strong>REAL NEWS</strong>
+            {% elif prediction == "Fake" %}
+                ❌ This appears to be <strong>FAKE NEWS</strong>
+            {% else %}
+                ❓ This is <strong>UNCERTAIN</strong>
+            {% endif %}
+
+            {% if confidence %}
+            <div class="confidence">
+                Confidence Level: {{ confidence }}%
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="tips">
+            <h3>💡 Tips for Better Results:</h3>
+            <ul>
+                <li>Include the full article text, not just the headline</li>
+                <li>Ensure the text is in English</li>
+                <li>Longer texts generally produce more accurate results</li>
+                <li>Check multiple sources for important news</li>
+                <li>Be aware that this is an AI tool and may not be 100% accurate</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Character counter
+        const textarea = document.getElementById('news');
+        const charCount = document.getElementById('charCount');
+
+        function updateCharCount() {
+            const count = textarea.value.length;
+            charCount.textContent = count;
+
+            if (count > 9000) {
+                charCount.style.color = '#ff6b6b';
+            } else if (count > 7000) {
+                charCount.style.color = '#ffa500';
+            } else {
+                charCount.style.color = '#666';
+            }
+        }
+
+        textarea.addEventListener('input', updateCharCount);
+        updateCharCount(); // Initial count
+
+        // Form submission with loading state
+        const form = document.getElementById('newsForm');
+        const loading = document.getElementById('loading');
+        const btn = document.getElementById('analyzeBtn');
+
+        form.addEventListener('submit', function(e) {
+            const text = textarea.value.trim();
+
+            if (text.length < 10) {
+                e.preventDefault();
+                alert('Please enter at least 10 characters for meaningful analysis.');
+                return;
+            }
+
+            // Show loading state
+            loading.style.display = 'block';
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Analyzing...';
+
+            // Hide any previous results
+            const results = document.querySelectorAll('.result');
+            results.forEach(result => result.style.display = 'none');
+        });
+
+        // Auto-resize textarea
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    </script>
+</body>
+</html>
